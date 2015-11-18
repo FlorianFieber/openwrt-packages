@@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=python3-setuptools
 PKG_VERSION:=18.5
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 
 PKG_SOURCE:=setuptools-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://pypi.python.org/packages/source/s/setuptools/
@@ -29,6 +29,7 @@ define Package/python3-setuptools
 	TITLE:=Tool for installing Python $(PYTHON3_VERSION) packages.
 	URL:=https://bitbucket.org/pypa/setuptools
 	DEPENDS:=+python3 +python3-dev +python3-lib2to3
+	MAINTAINER:=Alexandru Ardelean <ardeleanalex@gmail.com>
 endef
 
 define Package/python3-setuptools/description
@@ -37,7 +38,8 @@ endef
 
 define Build/Compile
 	$(call Build/Compile/Py3Mod,,\
-		install --prefix="$(PKG_INSTALL_DIR)/usr" \
+		install --root="$(PKG_INSTALL_DIR)" --prefix="/usr" \
+		--single-version-externally-managed \
 	)
 endef
 
@@ -46,55 +48,6 @@ define Build/InstallDev
 	$(CP) \
 		$(PKG_INSTALL_DIR)$(PYTHON3_PKG_DIR)/* \
 		$(PYTHON3_LIB_DIR)
-endef
-
-# If python3-pip was installed first, move conflicting files before installing
-define Package/python3-setuptools/preinst
-#!/bin/sh
-cd "$${IPKG_INSTROOT}$(PYTHON3_PKG_DIR)"
-[ -f easy-install.pth ] && mv -f easy-install.pth easy-install.pth.pip
-[ -f site.py ] && mv -f site.py site.py.pip
-exit 0
-endef
-
-# Move them back after installing
-define Package/python3-setuptools/postinst
-#!/bin/sh
-cd "$${IPKG_INSTROOT}$(PYTHON3_PKG_DIR)"
-[ -f easy-install.pth.pip ] && {
-	mv -f easy-install.pth easy-install.pth.setuptools
-	mv -f easy-install.pth.pip easy-install.pth
-}
-[ -f site.py.pip ] && {
-	mv -f site.py site.py.setuptools
-	mv -f site.py.pip site.py
-}
-exit 0
-endef
-
-# If python3-setuptools gets removed first, backup pip's files,
-# move setuptools' in place
-define Package/python3-setuptools/prerm
-#!/bin/sh
-cd "$${IPKG_INSTROOT}$(PYTHON3_PKG_DIR)"
-[ -f easy-install.pth.setuptools ] && [ -f easy-install.pth ] && {
-	mv -f easy-install.pth easy-install.pth.pip
-	mv -f easy-install.pth.setuptools easy-install.pth
-}
-[ -f site.py.setuptools ] && [ -f site.py ] && {
-	mv -f site.py site.py.pip
-	mv -f site.py.setuptools site.py
-}
-exit 0
-endef
-
-# Restore pip's files after setuptools' removal
-define Package/python3-setuptools/postrm
-#!/bin/sh
-cd "$${IPKG_INSTROOT}$(PYTHON3_PKG_DIR)"
-[ -f easy-install.pth.pip ] && mv -f easy-install.pth.pip easy-install.pth
-[ -f site.py.pip ] && mv -f site.py.pip site.py
-exit 0
 endef
 
 define Py3Package/python3-setuptools/install
